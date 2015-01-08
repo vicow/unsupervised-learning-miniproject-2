@@ -51,6 +51,11 @@ class Gridworld:
             self.latencies += latencies/N_runs
 
 
+    def reset_pos(self):
+        self.x_position = 0.1
+        self.y_position = 0.1
+
+
     def reset(self):
         """
         Reset the weigths (and the latency_list).
@@ -60,8 +65,7 @@ class Gridworld:
         self.w = numpy.random.rand(self.N * self.N, 8)
         self.e = numpy.zeros((self.N * self.N, 8))
         self.latency_list = []
-        self.x_position = 0.1
-        self.y_position = 0.1
+        self.reset_pos()
         self.action = None
 
 
@@ -125,6 +129,7 @@ class Gridworld:
             # run a trial and store the time it takes to the target
             latency = self._run_trial()
             self.latency_list.append(latency)
+            self.reset_pos()
 
         return array(self.latency_list)
 
@@ -155,6 +160,7 @@ class Gridworld:
                 self._visualize_current_state()
 
             latency = latency + 1
+        print latency
 
         if visualize:
             self._close_visualization()
