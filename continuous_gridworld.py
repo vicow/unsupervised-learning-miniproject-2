@@ -15,6 +15,8 @@ class Gridworld:
 
         # Exploration-exploitation tradeoff
         self.epsilon = epsilon
+        # e = 0 => full exploitation
+        # e = 1 => full exploration
 
         # Eligibility trace decay
         self.lambda_eligibility = lambda_eligibility
@@ -43,12 +45,18 @@ class Gridworld:
 
 
     def run(self, N_trials=10, N_runs=1):
+        self.N_trials = N_trials
+        self.N_runs = N_runs
+
         self.latencies = zeros(N_trials)
+        self.rewards = zeros(N_trials)
 
         for run in range(N_runs):
+            print "##### Run:", run
             self._init_run()
-            latencies = self._learn_run(N_trials=N_trials)
-            self.latencies += latencies/N_runs
+            latencies, rewards = self._learn_run(N_trials=N_trials)
+            self.latencies += latencies / N_runs
+            self.rewards += rewards / N_runs
 
 
     def reset_pos(self):
@@ -65,11 +73,12 @@ class Gridworld:
         self.w = numpy.random.rand(self.N * self.N, 8)
         self.e = numpy.zeros((self.N * self.N, 8))
         self.latency_list = []
+        self.reward_list = []
         self.reset_pos()
         self.action = None
 
 
-    def learning_curve(self,log=False,filter=1.):
+    def learning_curve(self, log=False, filter=1.):
         """
         Show a running average of the time it takes the agent to reach the target location.
 
@@ -77,7 +86,7 @@ class Gridworld:
         filter=1. : timescale of the running average.
         log    : Logarithmic y axis.
         """
-        figure()
+        fig = figure()
         xlabel('trials')
         ylabel('time to reach target')
         latencies = array(self.latency_list)
@@ -86,9 +95,29 @@ class Gridworld:
             latencies[i] = latencies[i-1] + (latencies[i] - latencies[i-1])/float(filter)
 
         if not log:
-            plot(self.latencies)
+            plot(latencies)
         else:
-            semilogy(self.latencies)
+            semilogy(latencies)
+
+        fig.savefig('learning_curve_runs_%s_trials_%s.png' % (self.N_runs, self.N_trials))
+
+
+    def reward_curve(self, log=False, filter=1.):
+        fig = figure()
+        xlabel('trials')
+        ylabel('total reward received')
+        rewards = array(self.reward_list)
+        # calculate a running average over the latencies with a averaging time 'filter'
+        for i in range(1,rewards.shape[0]):
+            rewards[i] = rewards[i-1] + (rewards[i] - rewards[i-1])/float(filter)
+
+        if not log:
+            plot(rewards)
+        else:
+            semilogy(rewards)
+
+        fig.savefig('reward_curve_runs_%s_trials_%s.png' % (self.N_runs, self.N_trials))
+
 
     ############################################################################
     # Private methods
@@ -106,6 +135,7 @@ class Gridworld:
         # list that contains the times it took the agent to reach the target for all trials
         # serves to track the progress of learning
         self.latency_list = []
+        self.reward_list = []
 
         # initialize the state and action variables
         self.x_position = 0.1
@@ -127,11 +157,12 @@ class Gridworld:
         """
         for trial in range(N_trials):
             # run a trial and store the time it takes to the target
-            latency = self._run_trial()
+            latency, reward = self._run_trial()
             self.latency_list.append(latency)
+            self.reward_list.append(reward)
             self.reset_pos()
 
-        return array(self.latency_list)
+        return array(self.latency_list), array(self.reward_list)
 
 
     def _run_trial(self, N_max=10000, visualize=False):
@@ -145,6 +176,7 @@ class Gridworld:
 
         # initialize the latency (time to reach the target) for this trial
         latency = 0.
+        total_reward = 0.
 
         # start the visualization, if asked for
         if visualize:
@@ -155,16 +187,17 @@ class Gridworld:
         while not self._arrived() and latency < N_max:
             self._update_state()
             self._choose_action()
+            total_reward += self._reward()
             self._update_weights()
             if visualize:
                 self._visualize_current_state()
 
             latency = latency + 1
-        print latency
+        print latency, total_reward
 
         if visualize:
             self._close_visualization()
-        return latency
+        return latency, total_reward
 
     def _r(self, sx, sy, i, j):
         xj = i * (1 / 19.)
