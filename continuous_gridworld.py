@@ -65,6 +65,8 @@ class Gridworld:
     def reset_pos(self):
         self.x_position = 0.1
         self.y_position = 0.1
+    def epsilon_for(self, x):
+        return max(0, 0.800008-0.0267466 * x+0.000290858 * (x**2) - 1.02475*10**(-6) *  x ** 3)
 
 
     def reset(self):
@@ -103,7 +105,50 @@ class Gridworld:
             semilogy(latencies)
 
         fig.savefig('learning_curve_runs_%s_trials_%s_epsilon_%s.png' % (self.N_runs, self.N_trials, self.epsilon_start))
-
+    def navigation_map(self):
+        """
+            Plot the direction with the highest Q-value for every position.
+            Useful only for small gridworlds, otherwise the plot becomes messy.
+            """
+        self.x_direction = numpy.zeros((self.N,self.N))
+        self.y_direction = numpy.zeros((self.N,self.N))
+        
+        self.actions = numpy.zeros((self.N,self.N))
+        
+        for i in range(20):
+            for j in range(20):
+                sx = i * (1 / 19.)
+                sy = j * (1 / 19.)
+                actions = []
+                for a in range(8):
+                    actions.append(self._Q(sx, sy, a))
+                self.actions[i,j] = argmax(actions)
+        
+        
+        
+        #self.actions = argmax(self.Q[:,:,:],axis=2)
+        self.y_direction[self.actions==0] = 0
+        self.y_direction[self.actions==1] = 1 #.5
+        self.y_direction[self.actions==2] = 1.
+        self.y_direction[self.actions==3] = 1 #.5
+        self.y_direction[self.actions==4] = 0
+        self.y_direction[self.actions==5] = -1 #-.5
+        self.y_direction[self.actions==6] = -1
+        self.y_direction[self.actions==7] = -1 #-.5
+        
+        self.x_direction[self.actions==0] = 1.
+        self.x_direction[self.actions==1] = 1 #0.5
+        self.x_direction[self.actions==2] = 0.
+        self.x_direction[self.actions==3] = -1 #-.5
+        self.x_direction[self.actions==4] = -1.
+        self.x_direction[self.actions==5] = -1 #-.5
+        self.x_direction[self.actions==6] = 0
+        self.x_direction[self.actions==7] = 1 #.5
+        
+        figure()
+        
+        quiver(self.x_direction,self.y_direction)
+        axis([-0.5, self.N - 0.5, -0.5, self.N - 0.5])
 
     def reward_curve(self, log=False, filter=1.):
         fig = figure()
@@ -161,12 +206,15 @@ class Gridworld:
         for trial in range(N_trials):
             # run a trial and store the time it takes to the target
             latency, reward = self._run_trial()
+            print "%2d: Escape latency: %4d, Reward: %2d" % (trial, latency, reward)
+
             self.latency_list.append(latency)
             self.reward_list.append(reward)
             self.reset_pos()
 
             #self.epsilon = 1. / (1 + trial)
-            self.epsilon = 0.792474 - 0.0247379 * trial + 0.000200856 * trial**2
+            #self.epsilon = 0.792474 - 0.0247379 * trial + 0.000200856 * trial**2
+            self.epsilon = self.epsilon_for(trial)
 
         return array(self.latency_list), array(self.reward_list)
 
@@ -199,7 +247,7 @@ class Gridworld:
                 self._visualize_current_state()
 
             latency = latency + 1
-        print latency, total_reward
+    
 
         if visualize:
             self._close_visualization()
