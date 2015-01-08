@@ -165,7 +165,8 @@ class Gridworld:
             self.reward_list.append(reward)
             self.reset_pos()
 
-            self.epsilon = 1. / (1 + trial)
+            #self.epsilon = 1. / (1 + trial)
+            self.epsilon = 0.792474 - 0.0247379 * trial + 0.000200856 * trial**2
 
         return array(self.latency_list), array(self.reward_list)
 
