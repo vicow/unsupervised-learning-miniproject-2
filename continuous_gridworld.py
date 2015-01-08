@@ -1,7 +1,7 @@
 from pylab import *
 import numpy
 from time import sleep
-from math import pi, exp, cos, sin, pow
+from math import pi, exp, cos, sin, pow, sqrt
 import matplotlib.pyplot as plt
 plt.ion()
 
@@ -65,8 +65,9 @@ class Gridworld:
     def reset_pos(self):
         self.x_position = 0.1
         self.y_position = 0.1
+
     def epsilon_for(self, x):
-        return max(0, 0.800008-0.0267466 * x+0.000290858 * (x**2) - 1.02475*10**(-6) *  x ** 3)
+        return max(0, 0.8 - 0.03 * x+0.0003 * (x**2) - 1.02*10**(-6) *x ** 3)
 
 
     def reset(self):
@@ -112,9 +113,9 @@ class Gridworld:
             """
         self.x_direction = numpy.zeros((self.N,self.N))
         self.y_direction = numpy.zeros((self.N,self.N))
-        
+
         self.actions = numpy.zeros((self.N,self.N))
-        
+
         for i in range(20):
             for j in range(20):
                 sx = i * (1 / 19.)
@@ -123,9 +124,9 @@ class Gridworld:
                 for a in range(8):
                     actions.append(self._Q(sx, sy, a))
                 self.actions[i,j] = argmax(actions)
-        
-        
-        
+
+
+
         #self.actions = argmax(self.Q[:,:,:],axis=2)
         self.y_direction[self.actions==0] = 0
         self.y_direction[self.actions==1] = 1 #.5
@@ -135,7 +136,7 @@ class Gridworld:
         self.y_direction[self.actions==5] = -1 #-.5
         self.y_direction[self.actions==6] = -1
         self.y_direction[self.actions==7] = -1 #-.5
-        
+
         self.x_direction[self.actions==0] = 1.
         self.x_direction[self.actions==1] = 1 #0.5
         self.x_direction[self.actions==2] = 0.
@@ -144,9 +145,9 @@ class Gridworld:
         self.x_direction[self.actions==5] = -1 #-.5
         self.x_direction[self.actions==6] = 0
         self.x_direction[self.actions==7] = 1 #.5
-        
+
         figure()
-        
+
         quiver(self.x_direction,self.y_direction)
         axis([-0.5, self.N - 0.5, -0.5, self.N - 0.5])
 
@@ -212,9 +213,9 @@ class Gridworld:
             self.reward_list.append(reward)
             self.reset_pos()
 
-            #self.epsilon = 1. / (1 + trial)
+            self.epsilon = sqrt(1. / (1 + trial**2))
             #self.epsilon = 0.792474 - 0.0247379 * trial + 0.000200856 * trial**2
-            self.epsilon = self.epsilon_for(trial)
+            #self.epsilon = self.epsilon_for(trial)
 
         return array(self.latency_list), array(self.reward_list)
 
@@ -247,7 +248,7 @@ class Gridworld:
                 self._visualize_current_state()
 
             latency = latency + 1
-    
+
 
         if visualize:
             self._close_visualization()
