@@ -47,12 +47,15 @@ class Gridworld:
     def run(self, N_trials=10, N_runs=1):
         self.N_trials = N_trials
         self.N_runs = N_runs
+        self.epsilon_start = self.epsilon
 
         self.latencies = zeros(N_trials)
         self.rewards = zeros(N_trials)
 
         for run in range(N_runs):
+            print "##############"
             print "##### Run:", run
+            print "##############"
             self._init_run()
             latencies, rewards = self._learn_run(N_trials=N_trials)
             self.latencies += latencies / N_runs
@@ -99,7 +102,7 @@ class Gridworld:
         else:
             semilogy(latencies)
 
-        fig.savefig('learning_curve_runs_%s_trials_%s.png' % (self.N_runs, self.N_trials))
+        fig.savefig('learning_curve_runs_%s_trials_%s_epsilon_%s.png' % (self.N_runs, self.N_trials, self.epsilon_start))
 
 
     def reward_curve(self, log=False, filter=1.):
@@ -116,7 +119,7 @@ class Gridworld:
         else:
             semilogy(rewards)
 
-        fig.savefig('reward_curve_runs_%s_trials_%s.png' % (self.N_runs, self.N_trials))
+        fig.savefig('reward_curve_runs_%s_trials_%s_epsilon_%s.png' % (self.N_runs, self.N_trials, self.epsilon_start))
 
 
     ############################################################################
@@ -161,6 +164,8 @@ class Gridworld:
             self.latency_list.append(latency)
             self.reward_list.append(reward)
             self.reset_pos()
+
+            self.epsilon = 1. / (1 + trial)
 
         return array(self.latency_list), array(self.reward_list)
 
