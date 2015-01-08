@@ -1,7 +1,7 @@
 from pylab import *
 import numpy
 from time import sleep
-from Math import pi
+from math import pi, exp, cos, sin, pow
 import matplotlib.pyplot as plt
 plt.ion()
 
@@ -14,7 +14,7 @@ class Gridworld:
         self.N = 20
 
         # Exploration-exploitation tradeoff
-        self.eta = eta
+        self.epsilon = epsilon
 
         # Eligibility trace decay
         self.lambda_eligibility = lambda_eligibility
@@ -58,7 +58,7 @@ class Gridworld:
         Instant amnesia -  the agent forgets everything he has learned before
         """
         self.w = numpy.random.rand(self.N * self.N, 8)
-        self.e = numpy.zeros((self.N * self.N, 4))
+        self.e = numpy.zeros((self.N * self.N, 8))
         self.latency_list = []
         self.x_position = 0.1
         self.y_position = 0.1
@@ -90,14 +90,14 @@ class Gridworld:
     # Private methods
     ############################################################################
 
-    def _init_run():
+    def _init_run(self):
         """
         Initialize the weights, eligibility trace, position etc.
         """
 
         # initialize the weights and the eligibility trace
         self.w = numpy.random.rand(self.N * self.N, 8)
-        self.e = numpy.zeros((self.N * self.N, 4))
+        self.e = numpy.zeros((self.N * self.N, 8))
 
         # list that contains the times it took the agent to reach the target for all trials
         # serves to track the progress of learning
@@ -163,7 +163,7 @@ class Gridworld:
     def _r(self, sx, sy, i, j):
         xj = i * (1 / 19.)
         yj = j * (1 / 19.)
-        return Math.exp( - ((sx - xj) ^ 2 + (sy - yj) ^ 2) / (2 * self.sigma ^ 2) )
+        return exp( - (pow((sx - xj), 2) + pow((sy - yj), 2)) / (2 * pow(self.sigma, 2)) )
 
 
     def _Q(self, sx, sy, a):
@@ -180,14 +180,14 @@ class Gridworld:
         """
         # compute delta_t
         delta_t = self._reward() - \
-            (_Q(self.x_position_old, self.y_position_old, self.action_old) \
-            - self.gamma * _Q(self.x_position, self.y_position, self.action))
+            (self._Q(self.x_position_old, self.y_position_old, self.action_old) \
+            - self.gamma * self._Q(self.x_position, self.y_position, self.action))
 
         # update the eligibility trace
         self.e = self.lambda_eligibility * self.gamma * self.e
         for i in range(20):
             for j in range(20):
-                self.e[i + 20 * j, self.action_old] += self._r(self.x_position_old, self.y_position_old, i, j).
+                self.e[i + 20 * j, self.action_old] += self._r(self.x_position_old, self.y_position_old, i, j)
 
         # update the weights
         if self.action_old != None:
@@ -207,7 +207,7 @@ class Gridworld:
         else:
             actions = []
             for a in range(8):
-                actions[i] = _Q(self.x_position, self.y_position, a);
+                actions.append(self._Q(self.x_position, self.y_position, a))
             self.action = argmax(actions)
 
 
@@ -215,8 +215,9 @@ class Gridworld:
         """
         Check if the agent has arrived.
         """
-        return  (self.x_position - self.reward_position[0]) ^ 2 + \
-                (self.y_position - self.reward_position[1]) ^ 2 < 0.01
+
+        return  pow((self.x_position - self.reward_position[0]), 2) + \
+                pow((self.y_position - self.reward_position[1]), 2) < 0.01
 
 
     def _reward(self):
@@ -244,8 +245,8 @@ class Gridworld:
         # update the agents position according to the action
         # move to the down?
 
-        self.x_position += self.l * Math.cos(2 * pi * self.action / 8.)
-        self.y_position += self.l * Math.sin(2 * pi * self.action / 8.)
+        self.x_position += self.l * cos(2 * pi * self.action / 8.)
+        self.y_position += self.l * sin(2 * pi * self.action / 8.)
 
         # check if the agent has bumped into a wall.
         if self._is_wall():
@@ -272,11 +273,6 @@ class Gridworld:
         # check of the agent is trying to leave the gridworld
         if x_position < 0 or x_position >= 1.0 or y_position < 0 or y_position >= 1.0:
             return True
-
-        # check if the agent has bumped into an obstacle in the room
-        if self.obstacle:
-            if y_position == self.N/2 and x_position>self.N/2:
-                return True
 
         # if none of the above is the case, this position is not a wall
         return False
